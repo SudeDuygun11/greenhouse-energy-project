@@ -1,0 +1,8 @@
+# Non-secret configuration for dlt pipelines in this project.
+#
+# Date ranges (start_date/end_date) are intentionally NOT configured here.
+# end_date must be computed dynamically per run (see pipelines/energyzero_pipeline.py)
+# rather than stored as a static value, which would go stale immediately.
+
+[destination.bigquery]
+project_id = "greenhouse-energy-project"

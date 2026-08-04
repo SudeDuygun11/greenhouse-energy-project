@@ -1,0 +1,19 @@
+# Credentials & secrets — never commit these
+credentials/
+.env
+dlt/.dlt/secrets.toml
+dlt/venv/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# dbt
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+
+# Airflow / Astro
+airflow_project/logs/
+airflow_project/.astro/
