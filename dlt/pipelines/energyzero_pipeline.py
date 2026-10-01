@@ -1,10 +1,11 @@
-"""Runs a one-time historical backfill of the EnergyZero source into BigQuery.
+"""Loads the EnergyZero source into BigQuery.
 
-This is the manual backfill entry point, not the scheduled incremental
-pipeline. 
+Run directly for the one-time historical backfill; Airflow calls run()
+with a short trailing window for incremental loads (merge on
+timestamp_utc makes re-loading overlapping days safe).
 
-Usage:
-    python pipelines/energyzero_pipeline.py
+Usage (from the dlt/ folder):
+    python -m pipelines.energyzero_pipeline
 """
 
 import logging
@@ -22,7 +23,7 @@ logging.basicConfig(level=logging.INFO)
 BACKFILL_START_DATE = date(2019, 1, 1)
 
 
-def run() -> None:
+def run(start_date: date = BACKFILL_START_DATE, end_date: date | None = None) -> str:
     pipeline = dlt.pipeline(
         pipeline_name="energyzero_pipeline",
         destination="bigquery",
@@ -31,12 +32,13 @@ def run() -> None:
 
     load_info = pipeline.run(
         energyzero_source(
-            start_date=BACKFILL_START_DATE,
-            end_date=date.today(),
+            start_date=start_date,
+            end_date=end_date or date.today(),
         )
     )
 
     print(load_info)
+    return str(load_info)
 
 
 if __name__ == "__main__":

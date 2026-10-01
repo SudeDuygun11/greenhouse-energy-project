@@ -1,0 +1,9 @@
+sources:
+  - name: nager_date
+    description: NL public holidays from the Nager.Date API, loaded by dlt.
+    database: greenhouse-energy-project
+    schema: staging_nager_date
+    tables:
+      - name: public_holidays
+      - name: public_holidays__types
+        description: dlt child table for the `types` list on each holiday (Public, School, Authorities, Observance).

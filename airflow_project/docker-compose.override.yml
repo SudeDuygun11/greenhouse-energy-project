@@ -1,0 +1,23 @@
+# Local development only (`astro dev start`). Mounts the dlt and dbt
+# projects from the repo root, and your gcloud application-default
+# credentials, into every Airflow container that parses or runs DAGs.
+#
+# The anonymous volumes hide the host's Windows virtualenvs (dlt/.venv, dlt/venv,
+# dbt/.venv): the containers use their own venvs, and walking thousands of
+# venv files over the bind mount made Cosmos time out while parsing the DAG.
+x-project-mounts: &project-mounts
+  volumes:
+    - ../dlt:/usr/local/airflow/project/dlt
+    - /usr/local/airflow/project/dlt/.venv
+    - /usr/local/airflow/project/dlt/venv
+    - ../dbt:/usr/local/airflow/project/dbt
+    - /usr/local/airflow/project/dbt/.venv
+    - ${APPDATA}/gcloud/application_default_credentials.json:/usr/local/airflow/gcloud/credentials.json:ro
+
+services:
+  scheduler:
+    <<: *project-mounts
+  dag-processor:
+    <<: *project-mounts
+  triggerer:
+    <<: *project-mounts

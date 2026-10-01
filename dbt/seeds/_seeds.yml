@@ -1,0 +1,28 @@
+seeds:
+  - name: greenhouse_monthly_profile
+    description: >
+      Synthetic baseline operating profile for a lit Dutch tomato greenhouse, one row per month.
+      Supplementary lighting runs in the dark season (16 h photoperiod Nov-Feb, shorter in
+      spring/autumn, off May-Aug). Heating setpoints are lower in summer. This is the
+      "business as usual" schedule that later optimization is compared against.
+    config:
+      column_types:
+        month: int64
+        lighting_enabled: bool
+        lights_on_hour: int64
+        lights_off_hour: int64
+        heating_day_setpoint_c: float64
+        heating_night_setpoint_c: float64
+    columns:
+      - name: month
+        data_tests: [unique, not_null]
+      - name: lighting_enabled
+        data_tests: [not_null]
+      - name: lights_on_hour
+        description: Local hour lamps switch on (inclusive). Null when lighting is disabled.
+      - name: lights_off_hour
+        description: Local hour lamps switch off (exclusive). Null when lighting is disabled.
+      - name: heating_day_setpoint_c
+        description: Indoor temperature target during the day (see vars day_start_hour/day_end_hour).
+      - name: heating_night_setpoint_c
+        description: Indoor temperature target at night.

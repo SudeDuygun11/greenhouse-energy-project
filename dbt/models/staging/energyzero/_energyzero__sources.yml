@@ -1,0 +1,20 @@
+sources:
+  - name: energyzero
+    description: NL all-in electricity and gas prices loaded by dlt (dlt/sources/energyzero.py).
+    database: greenhouse-energy-project
+    schema: staging_energyzero
+    config:
+      freshness:
+        warn_after: {count: 2, period: day}
+        error_after: {count: 7, period: day}
+    tables:
+      - name: electricity_prices
+        description: Hourly all-in electricity price. Known gap on 2019-10-27 (no data from the API).
+        config:
+          loaded_at_field: timestamp_utc
+      - name: gas_prices
+        description: >
+          Daily all-in gas price. One price per gas day, which runs 06:00-06:00 local time.
+          The backfill produced an extra 00:00 UTC row at every 30-day chunk boundary.
+        config:
+          loaded_at_field: timestamp_utc

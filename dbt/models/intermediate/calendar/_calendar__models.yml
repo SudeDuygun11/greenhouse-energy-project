@@ -1,0 +1,10 @@
+models:
+  - name: int_calendar__hours
+    description: Hourly spine in UTC with local-time attributes, from spine_start_date through the end of tomorrow (local).
+    columns:
+      - name: hour_utc
+        data_tests: [unique, not_null]
+      - name: hour_local
+        description: Europe/Amsterdam local time. Repeats once at the autumn DST change.
+      - name: date_local
+        data_tests: [not_null]

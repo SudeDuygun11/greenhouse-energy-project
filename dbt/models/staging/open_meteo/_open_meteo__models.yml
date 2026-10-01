@@ -1,0 +1,11 @@
+models:
+  - name: stg_open_meteo__weather
+    description: Hourly weather at the greenhouse location (Open-Meteo default units).
+    columns:
+      - name: hour_utc
+        data_tests: [unique, not_null]
+      - name: temperature_c
+        data_tests: [not_null]
+      - name: shortwave_radiation_w_per_m2
+        description: Global horizontal irradiance, averaged over the preceding hour.
+        data_tests: [not_null]

@@ -1,0 +1,33 @@
+# Contains no secrets -- safe to commit. Run dbt from this folder
+# (dbt picks up ./profiles.yml automatically).
+#
+#   dev  : your own gcloud login (`gcloud auth application-default login`)
+#   prod : used by Airflow. `oauth` reads Google default credentials, so it works
+#          with GOOGLE_APPLICATION_CREDENTIALS pointing at either a gcloud
+#          application-default login or a service-account key file.
+#
+# BQ_LOCATION must match the location of the dlt datasets (currently US).
+greenhouse_energy:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: oauth
+      project: greenhouse-energy-project
+      dataset: dbt_dev
+      location: "{{ env_var('BQ_LOCATION', 'US') }}"
+      threads: 4
+      job_execution_timeout_seconds: 300
+      job_retries: 1
+      priority: interactive
+
+    prod:
+      type: bigquery
+      method: oauth
+      project: greenhouse-energy-project
+      dataset: dbt
+      location: "{{ env_var('BQ_LOCATION', 'US') }}"
+      threads: 4
+      job_execution_timeout_seconds: 300
+      job_retries: 1
+      priority: interactive

@@ -1,0 +1,54 @@
+name: greenhouse_energy
+version: "1.0.0"
+profile: greenhouse_energy
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+analysis-paths: ["analyses"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - target
+  - dbt_packages
+
+vars:
+  # Timezone the greenhouse operates in. All source timestamps are UTC;
+  # schedules, gas days and holidays are defined in local time.
+  local_timezone: "Europe/Amsterdam"
+  # First hour of the hourly spine (matches the EnergyZero/Open-Meteo backfill start).
+  spine_start_date: "2019-01-01"
+  # Hours that count as "day" for heating setpoints (local time, [start, end)).
+  day_start_hour: 6
+  day_end_hour: 20
+
+  # --- Synthetic greenhouse: physical assumptions (per m2 of floor area) ---
+  greenhouse_area_m2: 40000                 # 4 ha, a mid-sized Dutch glasshouse
+  lighting_power_w_per_m2: 100              # installed LED grow-light power
+  lighting_radiation_cutoff_w_per_m2: 200   # lamps stay off when outdoor sun exceeds this
+  base_load_w_per_m2: 5                     # pumps, fans, screens, climate computer (always on)
+  heat_loss_w_per_m2_k: 6                   # heat loss through the cover per K indoor-outdoor difference
+  solar_heat_gain_fraction: 0.5             # share of outdoor shortwave radiation that heats the greenhouse
+  lighting_heat_fraction: 0.7               # share of lamp power that ends up as useful heat
+  boiler_efficiency: 0.9
+  gas_kwh_per_m3: 9.77                      # Groningen-quality natural gas, upper heating value
+  gas_kg_co2_per_m3: 1.78                   # combustion emission factor for NL natural gas
+
+models:
+  greenhouse_energy:
+    # Default dbt schema naming: <target dataset>_<custom schema>,
+    # e.g. dev -> dbt_dev_staging, prod -> dbt_staging.
+    staging:
+      +schema: staging
+      +materialized: view
+    intermediate:
+      +schema: intermediate
+      +materialized: table
+    marts:
+      +schema: marts
+      +materialized: table
+
+seeds:
+  greenhouse_energy:
+    +schema: seeds

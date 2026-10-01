@@ -1,0 +1,12 @@
+sources:
+  - name: open_meteo
+    description: Hourly historical weather for the greenhouse location, loaded by dlt from Open-Meteo.
+    database: greenhouse-energy-project
+    schema: staging_open_meteo
+    config:
+      loaded_at_field: datetime
+      freshness:
+        warn_after: {count: 2, period: day}
+        error_after: {count: 7, period: day}
+    tables:
+      - name: weather

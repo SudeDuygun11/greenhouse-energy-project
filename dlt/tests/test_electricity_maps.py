@@ -47,7 +47,7 @@ def test_carbon_intensity_returns_expected_row_shape():
     rows = _fetch_flat_range("carbon-intensity", API_KEY, date(2026, 8, 1), date(2026, 8, 1), "carbonIntensity")
 
     assert len(rows) == 24
-    assert {"datetime", "value", "is_estimated"} <= rows[0].keys()
+    assert {"datetime", "value", "is_estimated", "created_at", "updated_at"} <= rows[0].keys()
 
 
 def test_10_day_chunk_size_is_safe():

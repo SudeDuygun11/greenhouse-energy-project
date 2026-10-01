@@ -16,4 +16,4 @@ dbt/logs/
 
 # Airflow / Astro
 airflow_project/logs/
-airflow_project/.astro/
+# .astro/config.yaml must be committed; local-only .astro files are ignored by airflow_project/.gitignore

@@ -1,0 +1,21 @@
+sources:
+  - name: electricity_maps
+    description: >
+      Hourly grid signals for zone NL loaded by dlt (dlt/sources/electricity_maps.py).
+      dlt split some numeric columns into a typed variant (`<col>__v_double`) when the API
+      returned both integers and floats; staging coalesces each pair.
+    database: greenhouse-energy-project
+    schema: staging_electricity_maps
+    config:
+      loaded_at_field: datetime
+      freshness:
+        warn_after: {count: 2, period: day}
+        error_after: {count: 7, period: day}
+    tables:
+      - name: carbon_intensity
+      - name: renewable_percentage
+      - name: carbon_free_percentage
+      - name: total_load
+      - name: day_ahead_price
+        description: Available from 2017-04-30, with ~17.5k missing hours. Use EnergyZero for cost; this is a cross-check.
+      - name: electricity_mix

@@ -1,0 +1,26 @@
+models:
+  - name: stg_energyzero__electricity_prices
+    description: Hourly NL all-in electricity price (EUR/kWh, incl. taxes and VAT).
+    columns:
+      - name: hour_utc
+        description: Start of the hour, UTC.
+        data_tests: [unique, not_null]
+      - name: hour_local
+        description: Start of the hour, Europe/Amsterdam local time (DATETIME, not unique across the DST change).
+      - name: electricity_price_eur_per_kwh
+        data_tests: [not_null]
+
+  - name: stg_energyzero__gas_prices
+    description: Daily NL all-in gas price (EUR/m3), one row per gas day.
+    columns:
+      - name: gas_day
+        description: Local date the 06:00-06:00 gas day starts on.
+        data_tests: [unique, not_null]
+      - name: valid_from_utc
+        description: 06:00 local on gas_day, in UTC. Join hourly data with hour_utc >= valid_from_utc and hour_utc < valid_to_utc.
+        data_tests: [not_null]
+      - name: valid_to_utc
+        description: 06:00 local on the next day, in UTC (exclusive).
+        data_tests: [not_null]
+      - name: gas_price_eur_per_m3
+        data_tests: [not_null]

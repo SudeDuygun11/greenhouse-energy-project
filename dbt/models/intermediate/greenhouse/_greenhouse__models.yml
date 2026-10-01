@@ -1,0 +1,39 @@
+models:
+  - name: int_greenhouse__hourly_schedule
+    description: >
+      Baseline (unoptimized) hourly operating schedule of the synthetic greenhouse:
+      whether supplementary lighting is scheduled and the heating setpoint for each hour.
+      Built from the greenhouse_monthly_profile seed.
+    columns:
+      - name: hour_utc
+        data_tests: [unique, not_null]
+      - name: hour_local
+        description: Europe/Amsterdam local time. Repeats once at the autumn DST change.
+      - name: is_lighting_scheduled
+        data_tests: [not_null]
+      - name: heating_setpoint_c
+        data_tests: [not_null]
+
+  - name: int_greenhouse__hourly_energy_demand
+    description: >
+      Hourly electricity and gas demand of the synthetic greenhouse for two scenarios
+      (baseline, optimized). Only hours with weather data are included. Physical
+      assumptions are dbt vars in dbt_project.yml.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [hour_utc, scenario]
+    columns:
+      - name: scenario
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [baseline, optimized]
+      - name: electricity_kwh
+        data_tests: [not_null]
+      - name: gas_m3
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 0}

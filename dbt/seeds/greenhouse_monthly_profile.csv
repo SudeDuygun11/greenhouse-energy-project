@@ -1,0 +1,13 @@
+month,lighting_enabled,lights_on_hour,lights_off_hour,heating_day_setpoint_c,heating_night_setpoint_c
+1,true,2,18,20,17
+2,true,2,18,20,17
+3,true,3,17,20,17
+4,true,4,10,19,16
+5,false,,,18,15
+6,false,,,18,15
+7,false,,,18,15
+8,false,,,18,15
+9,true,4,10,19,16
+10,true,3,17,20,17
+11,true,2,18,20,17
+12,true,2,18,20,17

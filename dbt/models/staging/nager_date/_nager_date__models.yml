@@ -1,0 +1,10 @@
+models:
+  - name: stg_nager_date__public_holidays
+    description: >
+      One row per NL holiday. Includes non-public days (school, authorities, observance);
+      filter on is_public_holiday for official days off.
+    columns:
+      - name: holiday_date
+        data_tests: [unique, not_null]
+      - name: is_public_holiday
+        data_tests: [not_null]

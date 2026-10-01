@@ -23,6 +23,13 @@ Known API constraints (see tests/test_electricity_maps.py):
     - Whether the Academic license token actually honors the full
       2015 historical range in practice is tested directly in
       tests/test_electricity_maps.py, not assumed here.
+
+Fixed after initial backfill (see data_quality_notes.md items #7, #10):
+    - Flat signals now retain created_at/updated_at from the raw
+      response, needed to eventually support dbt snapshot-based
+      revision tracking (estimated -> measured transitions).
+    - Electricity Mix now retains estimation_method, previously
+      silently dropped.
 """
 
 import time
@@ -103,6 +110,8 @@ def _fetch_flat_range(
             "datetime": row["datetime"],
             "value": row.get(value_field),
             "is_estimated": row.get("isEstimated"),
+            "created_at": row.get("createdAt"),
+            "updated_at": row.get("updatedAt"),
         }
         for row in rows
     ]
@@ -136,6 +145,7 @@ def _fetch_electricity_mix_range(api_key: str, start_date: date, end_date: date)
         {
             "datetime": row["datetime"],
             "mix": row.get("mix"),
+            "estimation_method": row.get("estimationMethod"),
         }
         for row in rows
     ]
@@ -149,20 +159,32 @@ def _backfill_with_fallback(fetch_chunk_fn, start_date: date, end_date: date) ->
     gap has been confirmed for Electricity Maps yet -- this exists in
     case one is ever encountered, not because one is known to exist.
 
+    Auth errors (401/403) are re-raised instead of skipped: they mean a
+    missing or invalid API key, not missing data, and would otherwise turn
+    every day into a "skipped" day while the load still reports success.
+
     Returns:
         Tuple of (loaded_rows, skipped_days).
     """
     all_rows: list[dict] = []
     skipped_days: list[date] = []
 
-    for chunk_start, chunk_end in _date_chunks(start_date, end_date, CHUNK_DAYS):
+    chunks = list(_date_chunks(start_date, end_date, CHUNK_DAYS))
+    for i, (chunk_start, chunk_end) in enumerate(chunks, start=1):
         try:
-            all_rows.extend(fetch_chunk_fn(chunk_start, chunk_end))
-        except requests.HTTPError:
+            rows = fetch_chunk_fn(chunk_start, chunk_end)
+            all_rows.extend(rows)
+            print(f"    chunk {i}/{len(chunks)} ({chunk_start} to {chunk_end}): {len(rows)} rows")
+        except requests.HTTPError as e:
+            if e.response is not None and e.response.status_code in (401, 403):
+                raise
+            print(f"    chunk {i}/{len(chunks)} ({chunk_start} to {chunk_end}): FAILED ({e}), retrying day-by-day...")
             for single_day in _single_days(chunk_start, chunk_end):
                 try:
                     all_rows.extend(fetch_chunk_fn(single_day, single_day))
-                except requests.HTTPError:
+                except requests.HTTPError as day_error:
+                    if day_error.response is not None and day_error.response.status_code in (401, 403):
+                        raise
                     skipped_days.append(single_day)
                 time.sleep(DAY_RETRY_DELAY_SECONDS)
 
@@ -171,21 +193,36 @@ def _backfill_with_fallback(fetch_chunk_fn, start_date: date, end_date: date) ->
     return all_rows, skipped_days
 
 
-def _make_flat_resource(name: str, endpoint: str, value_field: str, default_start: date):
-    """Factory for the 5 flat-shape resources, to avoid repeating the
-    same resource definition 5 times with only the endpoint/field/date
-    differing.
+def _make_flat_resource(name: str, endpoint: str, value_field: str, true_min_start: date):
+    """Factory for the 5 flat-shape resources.
+
+    true_min_start is the signal's documented earliest availability
+    (differs per signal -- see module docstring). Whatever start_date
+    is requested by the caller is clipped to never go earlier than
+    true_min_start, and the resource is skipped entirely (no API calls)
+    if the requested range doesn't overlap true_min_start at all. This
+    matters specifically for day_ahead_price when backfilling year by
+    year: without clipping, years before 2017-04-30 would generate
+    hundreds of wasted 404 requests instead of being skipped outright.
     """
 
     @dlt.resource(name=name, write_disposition="merge", primary_key="datetime")
     def resource(
         api_key: str = dlt.secrets.value,
-        start_date: date = default_start,
+        start_date: date = true_min_start,
         end_date: date = dlt.config.value,
     ):
+        if end_date < true_min_start:
+            print(f"[{name}] skipped entirely: range ends before {true_min_start}")
+            yield []
+            return
+
+        effective_start = max(start_date, true_min_start)
+        print(f"[{name}] fetching {effective_start} to {end_date}...")
+
         rows, skipped_days = _backfill_with_fallback(
             lambda s, e: _fetch_flat_range(endpoint, api_key, s, e, value_field),
-            start_date,
+            effective_start,
             end_date,
         )
         if skipped_days:
@@ -211,9 +248,18 @@ def electricity_mix(
     end_date: date = dlt.config.value,
 ):
     """dlt resource yielding full electricity generation mix for NL."""
+    true_min_start = date(2015, 1, 1)
+    if end_date < true_min_start:
+        print(f"[electricity_mix] skipped entirely: range ends before {true_min_start}")
+        yield []
+        return
+
+    effective_start = max(start_date, true_min_start)
+    print(f"[electricity_mix] fetching {effective_start} to {end_date}...")
+
     rows, skipped_days = _backfill_with_fallback(
         lambda s, e: _fetch_electricity_mix_range(api_key, s, e),
-        start_date,
+        effective_start,
         end_date,
     )
     if skipped_days:
@@ -222,18 +268,19 @@ def electricity_mix(
 
 
 @dlt.source(name="electricity_maps")
-def electricity_maps_source(end_date: date = dlt.config.value):
+def electricity_maps_source(start_date: date = dlt.config.value, end_date: date = dlt.config.value):
     """Groups all 6 signals into a single dlt source.
 
-    Each resource keeps its own historical start_date default (they
-    differ per signal); only end_date is shared and passed explicitly,
-    since it must be computed fresh per run rather than stored statically.
+    Both start_date and end_date are passed through to every resource.
+    Each resource independently clips start_date to never go earlier
+    than its own true documented availability -- see _make_flat_resource
+    and electricity_mix docstrings for why this matters.
     """
     return (
-        carbon_intensity(end_date=end_date),
-        renewable_percentage(end_date=end_date),
-        carbon_free_percentage(end_date=end_date),
-        electricity_mix(end_date=end_date),
-        total_load(end_date=end_date),
-        day_ahead_price(end_date=end_date),
+        carbon_intensity(start_date=start_date, end_date=end_date),
+        renewable_percentage(start_date=start_date, end_date=end_date),
+        carbon_free_percentage(start_date=start_date, end_date=end_date),
+        electricity_mix(start_date=start_date, end_date=end_date),
+        total_load(start_date=start_date, end_date=end_date),
+        day_ahead_price(start_date=start_date, end_date=end_date),
     )

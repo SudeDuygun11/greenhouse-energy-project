@@ -1,0 +1,54 @@
+models:
+  - name: stg_electricity_maps__carbon_intensity
+    description: Hourly lifecycle carbon intensity of NL electricity consumption.
+    columns:
+      - name: hour_utc
+        data_tests: [unique, not_null]
+      - name: carbon_intensity_gco2eq_per_kwh
+        data_tests: [not_null]
+
+  - name: stg_electricity_maps__renewable_percentage
+    description: Hourly share of renewable sources in NL consumption (0-100).
+    columns:
+      - name: hour_utc
+        data_tests: [unique, not_null]
+      - name: renewable_pct
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 0, max_value: 100}
+
+  - name: stg_electricity_maps__carbon_free_percentage
+    description: Hourly share of carbon-free sources (renewables + nuclear) in NL consumption (0-100).
+    columns:
+      - name: hour_utc
+        data_tests: [unique, not_null]
+      - name: carbon_free_pct
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 0, max_value: 100}
+
+  - name: stg_electricity_maps__total_load
+    description: Hourly total NL electricity load (MW).
+    columns:
+      - name: hour_utc
+        data_tests: [unique, not_null]
+      - name: total_load_mw
+        data_tests: [not_null]
+
+  - name: stg_electricity_maps__day_ahead_price
+    description: Hourly NL day-ahead wholesale price (EUR/MWh, excl. taxes). Cross-check only.
+    columns:
+      - name: hour_utc
+        data_tests: [unique, not_null]
+      - name: day_ahead_price_eur_per_mwh
+        data_tests: [not_null]
+
+  - name: stg_electricity_maps__electricity_mix
+    description: Hourly NL generation per source (MW), plus storage charging and cross-border flows.
+    columns:
+      - name: hour_utc
+        data_tests: [unique, not_null]
+      - name: estimation_method
+        description: MEASURED, or how Electricity Maps estimated the hour.

@@ -1,0 +1,15 @@
+models:
+  - name: int_energy__hourly_prices
+    description: >
+      Electricity (hourly) and gas (per 06:00-06:00 gas day) all-in prices on one hourly grain.
+      Prices are null for hours without data (2019-10-27 electricity gap, 2 missing gas days,
+      and hours after the last load).
+    columns:
+      - name: hour_utc
+        data_tests: [unique, not_null]
+
+  - name: int_grid__hourly_signals
+    description: All Electricity Maps NL signals joined on the hour (grain set by carbon intensity).
+    columns:
+      - name: hour_utc
+        data_tests: [unique, not_null]
